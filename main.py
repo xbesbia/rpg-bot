@@ -476,55 +476,20 @@ async def main():
     scheduler.add_job(send_report_end_of_month, "cron", day="last", hour=23, minute=30)
     scheduler.start()
 
-    # 3. Запускаем самого бота
+# 3. Запускаем самого бота
     print("Бот успешно запущен!")
+    await bot.delete_webhook(drop_pending_updates=True)  # <-- ЭТА СТРОКА РЕШАЕТ КОНФЛИКТ
     await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
     asyncio.run(main())
+# --- ИСПРАВЛЕННЫЕ КОМАНДЫ ---
 
-# 1. Удаление смены (нужно знать ID смены)
-@dp.message(Command("del_shift"))
-async def del_shift(message: types.Message):
-    # Допустим, пользователь пишет /del_shift 5 (где 5 - это ID смены)
-    args = message.text.split()
-    if len(args) > 1:
-        shift_id = args[1]
-        cursor.execute("DELETE FROM shifts WHERE id = ?", (shift_id,))
-        conn.commit()
-        await message.answer(f"Смена с ID {shift_id} удалена!")
-    else:
-        await message.answer("Укажите ID смены. Посмотреть ID можно в списке смен.")
-
-# 2. Список смен за месяц
-@dp.message(Command("month_report"))
-async def month_report(message: types.Message):
-    # Допустим, пользователь пишет /month_report 05.2026
-    args = message.text.split()
-    month = args[1] if len(args) > 1 else datetime.now().strftime("%m.%Y")
-    
-    # Запрос к БД
-    cursor.execute("SELECT date, hours, gold FROM shifts WHERE date LIKE ?", (f'%.{month}',))
-    shifts = cursor.fetchall()
-    
-    if not shifts:
-        await message.answer(f"За {month} смен не найдено.")
-        return
-
-    text = f"Отчет за {month}:\n"
-    for s in shifts:
-        text += f"Дата: {s[0]} | Часы: {s[1]} | Золото: {s[2]}\n"
-    await message.answer(text)
-
-# --- КОМАНДА: Список смен за месяц (/list MM.YYYY) ---
 @dp.message(Command("list"))
 async def cmd_list(message: types.Message):
     args = message.text.split()
-    # Если месяц не указан, берем текущий
     month_year = args[1] if len(args) > 1 else datetime.now(MY_TIMEZONE).strftime("%m.%Y")
-    
-    # Преобразуем формат в YYYY-MM для SQL (например, 05.2026 -> 2026-05%)
     try:
         parts = month_year.split('.')
         search_pattern = f"{parts[1]}-{parts[0]}%"
@@ -549,7 +514,6 @@ async def cmd_list(message: types.Message):
     text += "\nУдалить смену: /del_shift <ID>"
     await message.answer(text)
 
-# --- КОМАНДА: Удаление смены (/del_shift ID) ---
 @dp.message(Command("del_shift"))
 async def cmd_del_shift(message: types.Message):
     args = message.text.split()
@@ -561,20 +525,16 @@ async def cmd_del_shift(message: types.Message):
     conn = sqlite3.connect("rpg_tracker.db")
     cursor = conn.cursor()
     
-    # 1. Проверяем, существует ли смена
     cursor.execute("SELECT hours, xp, gold FROM work_logs WHERE log_id = ? AND user_id = ?", 
                    (log_id, message.from_user.id))
     shift = cursor.fetchone()
     
     if shift:
-        # 2. Вычитаем данные из профиля
         cursor.execute("UPDATE users SET xp = xp - ?, gold = gold - ? WHERE user_id = ?", 
                        (shift[1], shift[2], message.from_user.id))
-        # 3. Удаляем саму смену
         cursor.execute("DELETE FROM work_logs WHERE log_id = ?", (log_id,))
         conn.commit()
         await message.answer(f"✅ Смена №{log_id} удалена, баланс скорректирован.")
     else:
         await message.answer("Смена не найдена (проверь ID в /list).")
-    
     conn.close()
