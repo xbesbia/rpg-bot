@@ -482,3 +482,36 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+# 1. Удаление смены (нужно знать ID смены)
+@dp.message(Command("del_shift"))
+async def del_shift(message: types.Message):
+    # Допустим, пользователь пишет /del_shift 5 (где 5 - это ID смены)
+    args = message.text.split()
+    if len(args) > 1:
+        shift_id = args[1]
+        cursor.execute("DELETE FROM shifts WHERE id = ?", (shift_id,))
+        conn.commit()
+        await message.answer(f"Смена с ID {shift_id} удалена!")
+    else:
+        await message.answer("Укажите ID смены. Посмотреть ID можно в списке смен.")
+
+# 2. Список смен за месяц
+@dp.message(Command("month_report"))
+async def month_report(message: types.Message):
+    # Допустим, пользователь пишет /month_report 05.2026
+    args = message.text.split()
+    month = args[1] if len(args) > 1 else datetime.now().strftime("%m.%Y")
+    
+    # Запрос к БД
+    cursor.execute("SELECT date, hours, gold FROM shifts WHERE date LIKE ?", (f'%.{month}',))
+    shifts = cursor.fetchall()
+    
+    if not shifts:
+        await message.answer(f"За {month} смен не найдено.")
+        return
+
+    text = f"Отчет за {month}:\n"
+    for s in shifts:
+        text += f"Дата: {s[0]} | Часы: {s[1]} | Золото: {s[2]}\n"
+    await message.answer(text)
