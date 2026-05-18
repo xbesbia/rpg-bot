@@ -10,7 +10,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiohttp import web  # <-- НОВЫЙ ИМПОРТ ДЛЯ ВЕБ-СЕРВЕРА
 
 # 1. ТВОЙ ТОКЕН
-TOKEN = "8744218448:AAEO5puiyL2BxdYbKbgqF9faQW3PXwTQaS0"
+TOKEN = "8744218448:AAGpDa2c4O3ppR_AJAsRCBQmX32tWR3YuI8"
 
 
 bot = Bot(token=TOKEN)
