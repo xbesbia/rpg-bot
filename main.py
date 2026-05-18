@@ -10,7 +10,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiohttp import web  # <-- НОВЫЙ ИМПОРТ ДЛЯ ВЕБ-СЕРВЕРА
 
 # 1. ТВОЙ ТОКЕН
-TOKEN = "8744218448:AAHQgU7Ed3T5Yr5kKLIZ5xzjWzGy_C_He0s"
+TOKEN = "8744218448:AAEO5puiyL2BxdYbKbgqF9faQW3PXwTQaS0"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -43,13 +43,13 @@ HOLIDAYS = [
 def get_rank(xp):
     if xp < 20:
         return "🌱 Черемша"
-    elif xp < 50:
+    elif xp < 30:
         return "🗡 Опытный Рома Букин"
-    elif xp < 100:
+    elif xp < 40:
         return "🛠 Покруче чем Рома Букин "
-    elif xp < 250:
+    elif xp < 50:
         return "🔥 Брат Макана"
-    elif xp < 500:
+    elif xp < 60:
         return "🎖 Ветеран туалетных войск"
     elif xp < 1000:
         return "👑 Грандмастер, колбастер, сосистер "
