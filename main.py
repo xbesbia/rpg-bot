@@ -462,7 +462,6 @@ async def start_web_server():
     site = web.TCPSite(runner, "0.0.0.0", 8000)
     await site.start()
     print("Веб-сервер запущен на порту 8000! Жду пингов от UptimeRobot...")
-
 async def main():
     init_db()
     
@@ -479,7 +478,6 @@ async def main():
     # Очищаем очередь обновлений, чтобы убить старые запросы
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
-
 
 if __name__ == "__main__":
     asyncio.run(main())
