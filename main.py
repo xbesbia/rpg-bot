@@ -463,22 +463,21 @@ async def start_web_server():
     await site.start()
     print("Веб-сервер запущен на порту 8000! Жду пингов от UptimeRobot...")
 
-
 async def main():
     init_db()
-
-    # 1. Сначала запускаем веб-сервер
-    await start_web_server()
-
-    # 2. Запускаем расписание отчетов
+    
+    # Запускаем планировщик
     scheduler = AsyncIOScheduler(timezone=MY_TIMEZONE)
     scheduler.add_job(send_report_14th, "cron", day=14, hour=23, minute=30)
     scheduler.add_job(send_report_end_of_month, "cron", day="last", hour=23, minute=30)
     scheduler.start()
 
-# 3. Запускаем самого бота
-    print("Бот успешно запущен!")
-    await bot.delete_webhook(drop_pending_updates=True)  # <-- ЭТА СТРОКА РЕШАЕТ КОНФЛИКТ
+    # Запускаем веб-сервер БЕЗ ожидания (чтобы он не блокировал бота)
+    asyncio.create_task(start_web_server())
+
+    print("Бот запускается...")
+    # Очищаем очередь обновлений, чтобы убить старые запросы
+    await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 
