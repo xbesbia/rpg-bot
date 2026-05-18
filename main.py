@@ -515,3 +515,65 @@ async def month_report(message: types.Message):
     for s in shifts:
         text += f"Дата: {s[0]} | Часы: {s[1]} | Золото: {s[2]}\n"
     await message.answer(text)
+
+# --- КОМАНДА: Список смен за месяц (/list MM.YYYY) ---
+@dp.message(Command("list"))
+async def cmd_list(message: types.Message):
+    args = message.text.split()
+    # Если месяц не указан, берем текущий
+    month_year = args[1] if len(args) > 1 else datetime.now(MY_TIMEZONE).strftime("%m.%Y")
+    
+    # Преобразуем формат в YYYY-MM для SQL (например, 05.2026 -> 2026-05%)
+    try:
+        parts = month_year.split('.')
+        search_pattern = f"{parts[1]}-{parts[0]}%"
+    except:
+        await message.answer("Используй формат: /list 05.2026")
+        return
+
+    conn = sqlite3.connect("rpg_tracker.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT log_id, date, hours, gold FROM work_logs WHERE date LIKE ? AND user_id = ?", 
+                   (search_pattern, message.from_user.id))
+    rows = cursor.fetchall()
+    conn.close()
+
+    if not rows:
+        await message.answer(f"За {month_year} смен не найдено.")
+        return
+
+    text = f"📜 Смены за {month_year}:\n\n"
+    for row in rows:
+        text += f"🆔 ID: {row[0]} | 📅 {row[1]} | ⏱ {row[2]}ч | 💰 {row[3]}\n"
+    text += "\nУдалить смену: /del_shift <ID>"
+    await message.answer(text)
+
+# --- КОМАНДА: Удаление смены (/del_shift ID) ---
+@dp.message(Command("del_shift"))
+async def cmd_del_shift(message: types.Message):
+    args = message.text.split()
+    if len(args) < 2:
+        await message.answer("Укажи ID смены: /del_shift 123")
+        return
+    
+    log_id = args[1]
+    conn = sqlite3.connect("rpg_tracker.db")
+    cursor = conn.cursor()
+    
+    # 1. Проверяем, существует ли смена
+    cursor.execute("SELECT hours, xp, gold FROM work_logs WHERE log_id = ? AND user_id = ?", 
+                   (log_id, message.from_user.id))
+    shift = cursor.fetchone()
+    
+    if shift:
+        # 2. Вычитаем данные из профиля
+        cursor.execute("UPDATE users SET xp = xp - ?, gold = gold - ? WHERE user_id = ?", 
+                       (shift[1], shift[2], message.from_user.id))
+        # 3. Удаляем саму смену
+        cursor.execute("DELETE FROM work_logs WHERE log_id = ?", (log_id,))
+        conn.commit()
+        await message.answer(f"✅ Смена №{log_id} удалена, баланс скорректирован.")
+    else:
+        await message.answer("Смена не найдена (проверь ID в /list).")
+    
+    conn.close()
