@@ -12,6 +12,7 @@ from aiohttp import web  # <-- НОВЫЙ ИМПОРТ ДЛЯ ВЕБ-СЕРВЕ�
 # 1. ТВОЙ ТОКЕН
 TOKEN = "8744218448:AAEO5puiyL2BxdYbKbgqF9faQW3PXwTQaS0"
 
+
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
